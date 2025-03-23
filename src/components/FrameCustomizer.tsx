@@ -195,6 +195,44 @@ function FrameCustomizer() {
     return title ? MAX_TEXT_LENGTH - title.text.length : MAX_TEXT_LENGTH;
   };
 
+  // Fungsi untuk menentukan apakah warna latar belakang terang atau gelap
+  const getContrastColor = (bgColor) => {
+    // Remove the hash if it exists
+    const hex = bgColor.replace('#', '');
+    
+    // Convert to RGB
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    // Calculate luminance using standard formula
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // Return black for light backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+  };
+
+  const DynamicLogo = ({ frameColor }) => {
+    // Tentukan logo mana yang akan digunakan berdasarkan warna latar
+    const logoSrc = getContrastColor(frameColor) === '#000000' 
+      ? '/myts-studio-logo-black.png' 
+      : '/myts-studio-logo-white.png';
+
+    const textColor = getContrastColor(frameColor) === '#000000' ? 'text-black' : 'text-white';
+    
+    return (
+      <>
+        <p className={textColor}>{formattedDate}</p>
+        <img 
+          src={logoSrc}
+          className="w-20 mx-auto"
+          alt="MyTS Studio"
+        />
+      </>
+    );
+  };
+  
+
   return (
     <div className="flex flex-col items-center relative">
       {/* Back button */}
@@ -237,8 +275,7 @@ function FrameCustomizer() {
           
           {/* Date and studio name */}
           <div className="text-center mt-6 space-y-3">
-            <p style={{ color: textColor }}>{formattedDate}</p>
-            <p className="text-sm" style={{ color: textColor }}>Myts Studio</p>
+            <DynamicLogo frameColor={frameColor} />
           </div>
 
           {/* Draggable text elements */}
