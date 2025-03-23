@@ -409,6 +409,75 @@ function FrameCustomizer() {
     colorInput.click();
   };
 
+  // Fungsi untuk memulai drawing dengan sentuhan
+  const handleTouchStart = (e) => {
+    if (!canvasActive) return;
+    
+    // Mencegah scrolling saat drawing
+    e.preventDefault();
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Mendapatkan posisi sentuhan pertama
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    setIsDrawing(true);
+    setCurrentPath([{ x, y }]);
+    
+    // Mulai drawing pada canvas
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = drawingColor;
+    ctx.lineWidth = drawingBrushSize;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  // Fungsi untuk drawing saat sentuhan bergerak
+  const handleTouchMove = (e) => {
+    if (!isDrawing || !canvasActive) return;
+    
+    // Mencegah scrolling saat drawing
+    e.preventDefault();
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Mendapatkan posisi sentuhan
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    // Menambahkan titik ke path saat ini
+    setCurrentPath([...currentPath, { x, y }]);
+    
+    // Drawing pada canvas
+    const ctx = canvas.getContext('2d');
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  // Fungsi untuk mengakhiri drawing saat sentuhan selesai
+  const handleTouchEnd = (e) => {
+    if (!isDrawing || !canvasActive) return;
+    
+    // Menyimpan path drawing saat ini
+    if (currentPath.length > 1) {
+      addDrawing({
+        path: currentPath,
+        color: drawingColor,
+        brushSize: drawingBrushSize
+      });
+    }
+    
+    setIsDrawing(false);
+    setCurrentPath([]);
+  };
+
   // Toggle canvas active state
   const toggleCanvasActive = () => {
     setCanvasActive(!canvasActive);
@@ -486,6 +555,10 @@ function FrameCustomizer() {
             onMouseMove={draw}
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
           />
 
           {/* Draggable text elements */}
