@@ -1,22 +1,27 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { 
   Download, Image, Sticker, Type, Trash2, Move, 
-  Maximize, Settings, X, ChevronRight, ChevronLeft, RefreshCw
+  Maximize, Settings, X, ChevronRight, ChevronLeft, RefreshCw,
+  Edit3, Square, Palette
 } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toPng } from 'html-to-image';
 import usePhotoboothStore from '../store/photoboothStore';
-import { Button, Select, TextInput, Label } from 'flowbite-react';
+import { Button, Select, TextInput, Label, ToggleSwitch } from 'flowbite-react';
 import Draggable from 'react-draggable';
 
 function FrameCustomizer() {
   const frameRef = useRef(null);
+  const canvasRef = useRef(null);
   const [titles, setTitles] = useState([]);
   const [nextId, setNextId] = useState(1);
   const [activeTextId, setActiveTextId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState('frame');
   const [activeStickerIndex, setActiveStickerIndex] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [currentPath, setCurrentPath] = useState([]);
+  const [drawingBrushSize, setDrawingBrushSize] = useState(5); // Default brush size
   const MAX_TEXT_LENGTH = 30;
   
   // Available stickers - using the exact paths from your file structure
@@ -37,7 +42,15 @@ function FrameCustomizer() {
     addSticker,
     updateSticker,
     removeSticker,
-    setStep
+    setStep,
+    // New drawing-related state
+    canvasActive,
+    setCanvasActive,
+    drawingColor,
+    setDrawingColor,
+    drawings,
+    addDrawing,
+    clearDrawings
   } = usePhotoboothStore();
 
   const fontOptions = [
@@ -49,12 +62,125 @@ function FrameCustomizer() {
     { value: 'font-light', label: 'Light' },
   ];
 
+  // Initialize canvas when it's active
+  useEffect(() => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current;
+      const frameRect = frameRef.current.getBoundingClientRect();
+      
+      // Set canvas dimensions to match the frame
+      canvas.width = frameRect.width;
+      canvas.height = frameRect.height;
+      
+      // Position the canvas over the frame
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.pointerEvents = canvasActive ? 'auto' : 'none';
+      
+      // Re-render drawings when canvas dimensions change
+      renderDrawings();
+    }
+  }, [canvasActive, frameRef.current]);
+
+  // Drawing functions
+  const startDrawing = (e) => {
+    if (!canvasActive) return;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Get the position relative to the canvas
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setIsDrawing(true);
+    setCurrentPath([{ x, y }]);
+    
+    // Start drawing on the canvas
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = drawingColor;
+    ctx.lineWidth = drawingBrushSize;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+  
+  const draw = (e) => {
+    if (!isDrawing || !canvasActive) return;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Get the position relative to the canvas
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Add point to the current path
+    setCurrentPath([...currentPath, { x, y }]);
+    
+    // Draw on the canvas
+    const ctx = canvas.getContext('2d');
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+  
+  const stopDrawing = () => {
+    if (!isDrawing || !canvasActive) return;
+    
+    // Save the current drawing path
+    if (currentPath.length > 1) {
+      addDrawing({
+        path: currentPath,
+        color: drawingColor,
+        brushSize: drawingBrushSize
+      });
+    }
+    
+    setIsDrawing(false);
+    setCurrentPath([]);
+  };
+
+  // Render all saved drawings onto the canvas
+  const renderDrawings = () => {
+    if (!canvasRef.current || !drawings) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw all saved paths
+    drawings.forEach(drawing => {
+      if (drawing.path.length < 2) return;
+      
+      ctx.beginPath();
+      ctx.strokeStyle = drawing.color;
+      ctx.lineWidth = drawing.brushSize;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      
+      ctx.moveTo(drawing.path[0].x, drawing.path[0].y);
+      
+      for (let i = 1; i < drawing.path.length; i++) {
+        ctx.lineTo(drawing.path[i].x, drawing.path[i].y);
+      }
+      
+      ctx.stroke();
+    });
+  };
+
+  // Render drawings whenever they change
+  useEffect(() => {
+    renderDrawings();
+  }, [drawings, canvasActive]);
+
   const getLayoutStyle = () => {
     switch (selectedLayout) {
       case 'vertical':
         return 'flex-col';
-      case 'horizontal':
-        return 'flex-row';
       case 'square':
         return 'grid grid-cols-2';
       default:
@@ -136,14 +262,13 @@ function FrameCustomizer() {
 
   const handleStickerSelect = (id) => {
     setActiveStickerIndex(id);
-    // You could add more functionality here if needed
   };
 
   const updateStickerScale = (id, scale) => {
     updateSticker(id, { scale });
   };
 
-  // Improved download function that properly includes text and stickers
+  // Updated download function to capture canvas drawings
   const downloadImage = useCallback(async () => {
     if (frameRef.current) {
       try {
@@ -195,7 +320,7 @@ function FrameCustomizer() {
     return title ? MAX_TEXT_LENGTH - title.text.length : MAX_TEXT_LENGTH;
   };
 
-  // Fungsi untuk menentukan apakah warna latar belakang terang atau gelap
+  // Function to determine whether background color is light or dark
   const getContrastColor = (bgColor) => {
     // Remove the hash if it exists
     const hex = bgColor.replace('#', '');
@@ -213,7 +338,7 @@ function FrameCustomizer() {
   };
 
   const DynamicLogo = ({ frameColor }) => {
-    // Tentukan logo mana yang akan digunakan berdasarkan warna latar
+    // Determine which logo to use based on background color
     const logoSrc = getContrastColor(frameColor) === '#000000' 
       ? '/myts-studio-logo-black.png' 
       : '/myts-studio-logo-white.png';
@@ -232,20 +357,93 @@ function FrameCustomizer() {
     );
   };
   
+  // Function to remove an individual drawing
+  const removeDrawing = (index) => {
+    // Create a new array excluding the drawing at the specified index
+    const newDrawings = [...drawings.slice(0, index), ...drawings.slice(index + 1)];
+    
+    // Update the store
+    clearDrawings(); // Clear existing drawings
+    
+    // Add all drawings except the removed one
+    newDrawings.forEach(drawing => {
+      addDrawing(drawing);
+    });
+    
+    // Re-render the canvas
+    renderDrawings();
+  };
+
+  // Function to update a drawing's color
+  const updateDrawingColor = (index) => {
+    // Show color picker or modal
+    const currentDrawing = drawings[index];
+    
+    // Create temporary input element for color picker
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = currentDrawing.color;
+    
+    // When color changes, update the drawing
+    colorInput.addEventListener('input', (e) => {
+      const newColor = e.target.value;
+      
+      // Create a new array with the updated drawing
+      const newDrawings = drawings.map((drawing, i) => 
+        i === index ? { ...drawing, color: newColor } : drawing
+      );
+      
+      // Update the store
+      clearDrawings(); // Clear existing drawings
+      
+      // Add all drawings with the updated one
+      newDrawings.forEach(drawing => {
+        addDrawing(drawing);
+      });
+      
+      // Re-render the canvas
+      renderDrawings();
+    });
+    
+    // Trigger the color picker
+    colorInput.click();
+  };
+
+  // Toggle canvas active state
+  const toggleCanvasActive = () => {
+    setCanvasActive(!canvasActive);
+    
+    // When activating canvas, switch to the drawing tab
+    if (!canvasActive) {
+      setSidebarOpen(true);
+      setActiveSidebarTab('drawing');
+    }
+  };
 
   return (
     <div className="flex flex-col items-center relative">
-      {/* Back button */}
-      <div className="mb-4">
+      <div className="grid md:grid-cols-2 grid-cols-1 gap-4 mb-4">
+        {/* Back button */}
         <Button
           color="light"
           size="sm"
           onClick={() => setStep(3)} // Go back to LayoutSelector (step 3)
-          className="flex items-center gap-2"
         >
-          <span className="flex items-center">
+          <span className="flex items-center gap-2">
             <ChevronLeft size={16} />
             Back to Layout
+          </span>
+        </Button>
+
+        {/* Canvas active toggle button */}
+        <Button
+          color={canvasActive ? "success" : "light"}
+          size="sm"
+          onClick={toggleCanvasActive}
+        >
+          <span className="flex items-center gap-2">
+            <Edit3 size={16} />
+            {canvasActive ? "Canvas Active" : "Enable Drawing"}
           </span>
         </Button>
       </div>
@@ -257,8 +455,10 @@ function FrameCustomizer() {
           className="bg-black rounded-xl p-6 shadow-lg relative overflow-hidden"
           style={{ backgroundColor: frameColor }}
           onClick={() => {
-            setActiveTextId(null);
-            setActiveStickerIndex(null);
+            if (!canvasActive) {
+              setActiveTextId(null);
+              setActiveStickerIndex(null);
+            }
           }}
         >
           {/* Photo layout */}
@@ -278,6 +478,16 @@ function FrameCustomizer() {
             <DynamicLogo frameColor={frameColor} />
           </div>
 
+          {/* Canvas for drawing */}
+          <canvas
+            ref={canvasRef}
+            className={`absolute top-0 left-0 right-0 bottom-0 w-full h-full z-20 ${canvasActive ? 'cursor-crosshair' : 'pointer-events-none'}`}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+          />
+
           {/* Draggable text elements */}
           {titles.map((title) => (
             title.text && (
@@ -287,12 +497,15 @@ function FrameCustomizer() {
                 onStop={(e, data) => handleDrag(title.id, e, data)}
                 bounds="parent"
                 handle=".drag-handle"
+                disabled={canvasActive}
               >
                 <div 
-                  className={`absolute cursor-move ${activeTextId === title.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
+                  className={`absolute cursor-move ${activeTextId === title.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${canvasActive ? 'pointer-events-none' : ''}`}
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleTextClick(title.id);
+                    if (!canvasActive) {
+                      e.stopPropagation();
+                      handleTextClick(title.id);
+                    }
                   }}
                 >
                   <div className="drag-handle relative">
@@ -318,12 +531,15 @@ function FrameCustomizer() {
               position={sticker.position}
               onStop={(e, data) => handleStickerDrag(sticker.id, e, data)}
               bounds="parent"
+              disabled={canvasActive}
             >
               <div 
-                className={`absolute cursor-move ${activeStickerIndex === sticker.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
+                className={`absolute cursor-move ${activeStickerIndex === sticker.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${canvasActive ? 'pointer-events-none' : ''}`}
                 onClick={(e) => {
-                  e.stopPropagation();
-                  handleStickerSelect(sticker.id);
+                  if (!canvasActive) {
+                    e.stopPropagation();
+                    handleStickerSelect(sticker.id);
+                  }
                 }}
               >
                 <img
@@ -337,7 +553,7 @@ function FrameCustomizer() {
                   }}
                 />
                 {/* Only show the X button when this sticker is active/selected */}
-                {activeStickerIndex === sticker.id && (
+                {activeStickerIndex === sticker.id && !canvasActive && (
                   <button
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600"
                     onClick={(e) => {
@@ -431,6 +647,15 @@ function FrameCustomizer() {
           >
             <Sticker size={16} className="inline mr-1" />
             Stickers
+          </button>
+          <button
+            className={`flex-1 py-3 text-sm font-medium ${
+              activeSidebarTab === 'drawing' ? 'text-purple-500 border-b-2 border-purple-500' : 'text-gray-400'
+            }`}
+            onClick={() => setActiveSidebarTab('drawing')}
+          >
+            <Edit3 size={16} className="inline mr-1" />
+            Draw
           </button>
         </div>
 
@@ -652,6 +877,129 @@ function FrameCustomizer() {
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Drawing tab content */}
+          {activeSidebarTab === 'drawing' && (
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-medium text-white mb-4">
+                <Edit3 size={20} />
+                Drawing Tools
+              </h3>
+              
+              {/* Brush color picker */}
+              <div className="mb-4">
+                <Label className="block mb-2 text-white">
+                  <Palette size={16} className="inline mr-2" />
+                  Brush Color
+                </Label>
+                <HexColorPicker color={drawingColor} onChange={setDrawingColor} className="w-full mb-2" />
+              </div>
+
+              {/* Brush size slider */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-white flex items-center">
+                    <Maximize size={14} className="mr-2" />
+                    Brush Size
+                  </Label>
+                  <span className="text-white">{drawingBrushSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  value={drawingBrushSize}
+                  onChange={(e) => setDrawingBrushSize(parseInt(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Canvas toggle switch */}
+              <div className="flex items-center justify-between mb-4">
+                <Label htmlFor="canvas-toggle" className="text-white">
+                  Enable Drawing Mode
+                </Label>
+                <ToggleSwitch
+                  id="canvas-toggle"
+                  checked={canvasActive}
+                  onChange={toggleCanvasActive}
+                />
+              </div>
+
+              {/* Clear all drawings button */}
+              <Button
+                color="failure"
+                size="sm"
+                onClick={clearDrawings}
+                className="w-full mb-4"
+              >
+                <Trash2 size={16} className="mr-1" />
+                Clear All Drawings
+              </Button>
+
+              {/* List of drawings */}
+              <div className="mt-6">
+                <h4 className="text-white font-medium mb-3">Drawings ({drawings.length})</h4>
+                
+                {drawings.length === 0 ? (
+                  <p className="text-gray-400 text-sm">No drawings added yet.</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto">
+                    {drawings.map((drawing, index) => (
+                      <div 
+                        key={index} 
+                        className="mb-2 p-3 bg-gray-700 rounded-lg"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-6 h-6 rounded-full mr-2" 
+                              style={{ backgroundColor: drawing.color }} 
+                            />
+                            <span className="text-white">Drawing {index + 1}</span>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => updateDrawingColor(index)}
+                              className="text-gray-400 hover:text-white mr-2"
+                              title="Change color"
+                            >
+                              <Palette size={18} />
+                            </button>
+                            <button
+                              onClick={() => removeDrawing(index)}
+                              className="text-gray-400 hover:text-red-500"
+                              title="Delete drawing"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Mini canvas preview */}
+                        <div 
+                          className="w-full h-10 bg-gray-800 rounded"
+                          style={{
+                            position: 'relative', 
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <div 
+                            className="absolute inset-0" 
+                            style={{
+                              background: `linear-gradient(90deg, transparent, ${drawing.color}, transparent)`,
+                              opacity: 0.7
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -38,6 +38,10 @@ export interface PhotoboothState {
   title: string;
   date: string;
   
+  canvasActive: boolean;
+  drawingColor: string;
+  drawings: Drawing[];
+  
   setStep: (step: number) => void;
   setPhotoCount: (count: PhotoCount) => void;
   addPhoto: (photo: string) => void;
@@ -53,4 +57,16 @@ export interface PhotoboothState {
   removeTextElement: (id: string) => void;
   setTitle: (title: string) => void;
   setDate: (date: string) => void;
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Drawing {
+  id: string;
+  path: Point[];
+  color: string;
+  brushSize: number;
 }

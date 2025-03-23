@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { PhotoboothState, PhotoCount, Layout, PhotoFrame, Sticker } from '../types';
+import { PhotoboothState, PhotoCount, Layout, PhotoFrame, Sticker, Drawing } from '../types';
 
 const usePhotoboothStore = create<PhotoboothState>((set) => ({
   step: 1,
@@ -12,6 +12,11 @@ const usePhotoboothStore = create<PhotoboothState>((set) => ({
   stickers: [],
   title: '',
   date: new Date().toLocaleDateString(),
+  
+  // New drawing-related state
+  canvasActive: false,
+  drawingColor: '#FF0000',
+  drawings: [],
   
   setStep: (step: number) => set({ step }),
   setPhotoCount: (count: PhotoCount) => set({ photoCount: count }),
@@ -35,6 +40,14 @@ const usePhotoboothStore = create<PhotoboothState>((set) => ({
   })),
   setTitle: (title: string) => set({ title }),
   setDate: (date: string) => set({ date }),
+  
+  // New drawing-related actions
+  setCanvasActive: (active: boolean) => set({ canvasActive: active }),
+  setDrawingColor: (color: string) => set({ drawingColor: color }),
+  addDrawing: (drawing: Omit<Drawing, 'id'>) => set((state) => ({ 
+    drawings: [...state.drawings, { ...drawing, id: crypto.randomUUID() }] 
+  })),
+  clearDrawings: () => set({ drawings: [] }),
 }));
 
 export default usePhotoboothStore;
