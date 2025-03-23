@@ -45,7 +45,7 @@ function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="py-4 text-center text-white/60 mt-auto">
+      <footer className="pb-4 text-center text-white/60 mt-auto">
         <p>© 2025 Myts Studio. All rights reserved.</p>
       </footer>
     </div>
