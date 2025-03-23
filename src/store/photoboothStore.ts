@@ -8,6 +8,7 @@ const usePhotoboothStore = create<PhotoboothState>((set) => ({
   selectedLayout: 'vertical',
   selectedFrame: null,
   frameColor: '#ffffff',
+  textColor: '#ffffff',
   stickers: [],
   title: '',
   date: new Date().toLocaleDateString(),
@@ -20,8 +21,9 @@ const usePhotoboothStore = create<PhotoboothState>((set) => ({
   setLayout: (layout: Layout) => set({ selectedLayout: layout }),
   setFrame: (frame: PhotoFrame | null) => set({ selectedFrame: frame }),
   setFrameColor: (color: string) => set({ frameColor: color }),
+  setTextColor: (color: string) => set({ textColor: color }),
   addSticker: (sticker: Sticker) => set((state) => ({
-    stickers: [...state.stickers, sticker]
+    stickers: [...state.stickers, { ...sticker, id: crypto.randomUUID() }]
   })),
   updateSticker: (id: string, updates: Partial<Sticker>) => set((state) => ({
     stickers: state.stickers.map((sticker) =>

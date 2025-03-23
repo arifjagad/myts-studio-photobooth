@@ -111,7 +111,7 @@ function CameraCapture() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-white rounded-lg text-purple-900 font-semibold"
+              className="px-6 py-3 bg-white rounded-lg text-neutral-900 font-semibold"
               onClick={proceedToLayout}
             >
               Choose Layout
@@ -121,7 +121,7 @@ function CameraCapture() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-white rounded-lg text-purple-900 font-semibold"
+            className="px-6 py-3 bg-white rounded-lg text-neutral-900 font-semibold"
             onClick={startPhotoSequence}
             disabled={countdown !== null || isCapturing || photos.length > 0}
           >

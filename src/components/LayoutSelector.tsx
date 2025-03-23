@@ -11,7 +11,6 @@ function LayoutSelector() {
     { id: 'vertical', icon: LayoutVertical, label: 'Vertical' },
     ...(photoCount === 4
       ? [
-          { id: 'horizontal', icon: LayoutIcon, label: 'Horizontal' },
           { id: 'square', icon: LayoutGrid, label: '2x2 Grid' },
         ]
       : []),
@@ -31,7 +30,7 @@ function LayoutSelector() {
           <motion.button
             key={id}
             className={`p-8 rounded-xl flex flex-col items-center gap-4 transition-colors ${
-              selectedLayout === id ? 'bg-white text-purple-900' : 'bg-white/10 hover:bg-white/20'
+              selectedLayout === id ? 'bg-white text-neutral-900' : 'bg-white/10 hover:bg-white/20'
             }`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

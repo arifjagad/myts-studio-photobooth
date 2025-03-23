@@ -14,7 +14,7 @@ function PhotoCountSelector() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-8">
-      <h2 className="text-2xl font-semibold">How many photos would you like to take?</h2>
+      <h2 className="text-2xl font-semibold text-center">How many photos would you like to take?</h2>
       
       <div className="flex gap-6">
         {[3, 4].map((count) => (

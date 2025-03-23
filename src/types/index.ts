@@ -1,6 +1,6 @@
 export type PhotoCount = 3 | 4;
 
-export type Layout = 'vertical' | 'horizontal' | 'square';
+export type Layout = 'vertical' | 'square';
 
 export interface PhotoFrame {
   id: string;
@@ -32,6 +32,7 @@ export interface PhotoboothState {
   selectedLayout: Layout;
   selectedFrame: PhotoFrame | null;
   frameColor: string;
+  textColor: string; // Add text color to state
   stickers: Sticker[];
   textElements: TextElement[];
   title: string;
@@ -43,6 +44,7 @@ export interface PhotoboothState {
   setLayout: (layout: Layout) => void;
   setFrame: (frame: PhotoFrame | null) => void;
   setFrameColor: (color: string) => void;
+  setTextColor: (color: string) => void; // Add text color setter
   addSticker: (sticker: Sticker) => void;
   updateSticker: (id: string, updates: Partial<Sticker>) => void;
   removeSticker: (id: string) => void;
