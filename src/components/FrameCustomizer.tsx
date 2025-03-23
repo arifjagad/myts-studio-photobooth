@@ -422,7 +422,7 @@ function FrameCustomizer() {
 
   return (
     <div className="flex flex-col items-center relative">
-      <div className="grid md:grid-cols-2 grid-cols-1 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Back button */}
         <Button
           color="light"
@@ -582,7 +582,7 @@ function FrameCustomizer() {
       </div>
 
       {/* Download button */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-2 grid-cols-1 md:gap-4">
         <Button 
           gradientDuoTone="purpleToBlue"
           className="mt-6 lg:px-5 lg:py-3 font-semibold"

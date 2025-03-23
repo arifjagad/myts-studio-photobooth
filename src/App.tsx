@@ -25,7 +25,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white flex flex-col px-8">
       <header className="py-6 text-center">
         <h1 className="text-4xl font-bold">Myts Studio Photobooth</h1>
         <p className="mt-2 text-white/80">Create beautiful memories in seconds</p>
